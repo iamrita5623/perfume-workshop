@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>專屬香氛調配工作台</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: 質感襯線與無襯線字體 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Noto+Serif+TC:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Noto Serif TC', serif; }
+    .font-eng { font-family: 'Cinzel', serif; }
+  </style>
+</head>
+<body class="bg-stone-100 text-stone-800 min-h-screen py-8 px-4">
+
+  <div class="max-w-2xl mx-auto">
+    
+    <!-- 介面 1：現場調配工作台 (操作模式) -->
+    <div id="workshop-panel" class="bg-white rounded-2xl shadow-sm border border-stone-200 p-6 sm:p-8">
+      
+      <!-- 頂部品牌標題 -->
+      <div class="text-center mb-8 border-b border-stone-100 pb-6">
+        <h2 class="text-xs tracking-widest uppercase text-stone-400 font-eng">Custom Fragrance Studio</h2>
+        <h1 class="text-2xl font-bold text-stone-800 mt-1">專屬調香工作台</h1>
+        <p class="text-xs text-stone-500 mt-1">在磅秤上依序加入香材，系統將即時計算層次與基底</p>
+      </div>
+
+      <!-- 基本設定：姓名、作品名稱、規格選擇 -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div>
+          <label class="block text-xs font-semibold text-stone-600 mb-1">調配師姓名 / 暱稱</label>
+          <input type="text" id="cust-name" placeholder="請輸入姓名" class="w-full text-sm px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:border-stone-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-stone-600 mb-1">聯絡電話 (選填 / 留存記錄)</label>
+          <input type="tel" id="cust-phone" placeholder="09xxxxxxxx" class="w-full text-sm px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:border-stone-500">
+        </div>
+        <div class="sm:col-span-2">
+          <label class="block text-xs font-semibold text-stone-600 mb-1">為這款香水命名</label>
+          <input type="text" id="perfume-name" placeholder="例如：Lazy Sunday Morning No. 1" class="w-full text-sm px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:border-stone-500">
+        </div>
+      </div>
+
+      <!-- 成品容量選擇 -->
+      <div class="mb-6">
+        <label class="block text-xs font-semibold text-stone-600 mb-2">調配容量規格</label>
+        <div class="grid grid-cols-2 gap-3">
+          <button type="button" onclick="setVolume(25.5, '30mL')" id="btn-30" class="vol-btn border border-stone-800 bg-stone-800 text-white text-sm py-2 rounded-lg font-medium transition">
+            30 mL 規格 (目標 25.5g)
+          </button>
+          <button type="button" onclick="setVolume(42.5, '50mL')" id="btn-50" class="vol-btn border border-stone-200 bg-white text-stone-700 text-sm py-2 rounded-lg font-medium hover:border-stone-400 transition">
+            50 mL 規格 (目標 42.5g)
+          </button>
+        </div>
+      </div>
+
+      <!-- 即時核心指引看板 (大字提示) -->
+      <div class="bg-stone-50 rounded-xl p-4 mb-6 border border-stone-200">
+        <div class="flex justify-between items-center text-xs text-stone-500 mb-2">
+          <span>香氣結構分佈</span>
+          <span id="note-summary">前 0% ｜ 中 0% ｜ 後 0%</span>
+        </div>
+        <!-- 前中後調動態彩色長條 -->
+        <div class="h-3 w-full bg-stone-200 rounded-full overflow-hidden flex mb-4">
+          <div id="bar-top" class="bg-emerald-400 transition-all duration-300" style="width: 0%"></div>
+          <div id="bar-mid" class="bg-amber-400 transition-all duration-300" style="width: 0%"></div>
+          <div id="bar-base" class="bg-orange-500 transition-all duration-300" style="width: 0%"></div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-center pt-2 border-t border-stone-200">
+          <div>
+            <div class="text-xs text-stone-500">已投入香材總重</div>
+            <div id="total-frag-weight" class="text-lg font-bold text-stone-800">0.00 <span class="text-xs font-normal">g</span></div>
+          </div>
+          <div>
+            <div class="text-xs text-stone-500">需補足香水基底</div>
+            <div id="remain-base-weight" class="text-lg font-bold text-indigo-900">25.50 <span class="text-xs font-normal">g</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 香材清單輸入區 -->
+      <div class="mb-6">
+        <div class="flex justify-between items-center mb-3">
+          <label class="text-sm font-semibold text-stone-700">調配香材清單</label>
+          <button type="button" onclick="addMaterialRow()" class="text-xs bg-stone-100 hover:bg-stone-200 text-stone-700 px-3 py-1.5 rounded-lg border border-stone-300 transition">
+            + 增加香材
+          </button>
+        </div>
+        
+        <div id="materials-container" class="space-y-3">
+          <!-- 動態香材列插入位置 -->
+        </div>
+      </div>
+
+      <!-- 送出按鈕 -->
+      <button type="button" onclick="finalizeFormula()" class="w-full bg-stone-800 hover:bg-black text-white text-sm py-3.5 rounded-xl font-medium tracking-wide transition shadow">
+        確認調配完成並生成配方卡
+      </button>
+
+    </div>
+
+    <!-- 介面 2：成果配方證書卡 (方案 A 呈現模式，預設隱藏) -->
+    <div id="result-card" class="hidden bg-white rounded-2xl shadow-xl border border-stone-200 p-8 text-center relative overflow-hidden">
+      <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 via-amber-400 to-orange-500"></div>
+
+      <div class="py-4">
+        <h3 class="text-xs tracking-widest text-stone-400 uppercase font-eng">Certificate of Custom Fragrance</h3>
+        <h1 id="cert-perfume-name" class="text-2xl font-bold text-stone-800 mt-2 font-eng">Custom Perfume</h1>
+        <p class="text-xs text-stone-500 mt-1">專屬調配師：<span id="cert-creator" class="font-medium text-stone-700"></span></p>
+      </div>
+
+      <!-- 層次視覺圖 -->
+      <div class="bg-stone-50 rounded-xl p-4 my-6 text-left border border-stone-100">
+        <div class="text-xs font-semibold text-stone-600 mb-2">香氣層次架構</div>
+        <div class="h-2.5 w-full bg-stone-200 rounded-full overflow-hidden flex mb-2">
+          <div id="cert-bar-top" class="bg-emerald-400" style="width: 0%"></div>
+          <div id="cert-bar-mid" class="bg-amber-400" style="width: 0%"></div>
+          <div id="cert-bar-base" class="bg-orange-500" style="width: 0%"></div>
+        </div>
+        <div id="cert-note-desc" class="flex justify-between text-xs text-stone-500">
+          <span>前調 0%</span>
+          <span>中調 0%</span>
+          <span>後調 0%</span>
+        </div>
+      </div>
+
+      <!-- 香材投入比例卡 -->
+      <div class="text-left mb-6">
+        <div class="text-xs font-semibold text-stone-600 mb-2">精選調配成分</div>
+        <ul id="cert-materials-list" class="divide-y divide-stone-100 text-sm">
+          <!-- 動態生成配方明細 -->
+        </ul>
+      </div>
+
+      <!-- 底部資訊 -->
+      <div class="border-t border-stone-100 pt-4 text-xs text-stone-400 flex justify-between items-center">
+        <span>規格：<span id="cert-volume">30mL</span></span>
+        <span id="cert-date">2026.10.31</span>
+      </div>
+
+      <!-- 操作按鈕：儲存/列印/返回 -->
+      <div class="mt-8 flex gap-3">
+        <button onclick="window.print()" class="flex-1 border border-stone-300 hover:bg-stone-50 text-stone-700 text-xs py-2.5 rounded-lg transition">
+          列印 / 存為 PDF 證書
+        </button>
+        <button onclick="editFormulaAgain()" class="flex-1 bg-stone-800 hover:bg-black text-white text-xs py-2.5 rounded-lg transition">
+          返回微調配方
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // 1. 去機密化的香材資料庫 (在此維護或由 Step 1 檔案匯入)
+    // 欄位只含：code (代碼), name (英文名稱), note (香調: Top/Mid/Base)
+    const MATERIALS_DB = [
+      { code: "T01", name: "Bergamot Calabrian", note: "Top" },
+      { code: "T02", name: "Lemon Italy", note: "Top" },
+      { code: "T03", name: "Sweet Orange", note: "Top" },
+      { code: "M01", name: "Rose Damascena", note: "Mid" },
+      { code: "M02", name: "Jasmine Sambac", note: "Mid" },
+      { code: "M03", name: "Hedione (High cis)", note: "Mid" },
+      { code: "M04", name: "Lavender French", note: "Mid" },
+      { code: "B01", name: "Cedarwood Virginia", note: "Base" },
+      { code: "B02", name: "Ambroxan Pure", note: "Base" },
+      { code: "B03", name: "Patchouli Clean", note: "Base" },
+      { code: "B04", name: "Iso E Super", note: "Base" }
+      // 可直接把 Step 1 匯出的清單貼在此處
+    ];
+
+    let targetTotalWeight = 25.5; // 預設 30mL 對應重量
+    let targetVolumeName = "30mL";
+
+    // 容量切換
+    function setVolume(weight, name) {
+      targetTotalWeight = weight;
+      targetVolumeName = name;
+      document.querySelectorAll('.vol-btn').forEach(btn => {
+        btn.classList.remove('bg-stone-800', 'text-white');
+        btn.classList.add('bg-white', 'text-stone-700');
+      });
+      if(name === '30mL') {
+        document.getElementById('btn-30').classList.add('bg-stone-800', 'text-white');
+      } else {
+        document.getElementById('btn-50').classList.add('bg-stone-800', 'text-white');
+      }
+      calculateAll();
+    }
+
+    // 動態新增一列香材輸入
+    function addMaterialRow() {
+      const container = document.getElementById('materials-container');
+      const rowId = 'mat-' + Date.now();
+
+      // 產生下拉選單選項
+      let optionsHtml = '<option value="">-- 挑選香材 --</option>';
+      MATERIALS_DB.forEach(item => {
+        optionsHtml += `<option value="${item.code}" data-note="${item.note}">${item.code} | ${item.name} (${item.note})</option>`;
+      });
+
+      const row = document.createElement('div');
+      row.id = rowId;
+      row.className = "flex items-center gap-2 bg-stone-50 p-2.5 rounded-lg border border-stone-200 text-sm";
+      row.innerHTML = `
+        <select class="mat-select flex-1 bg-white border border-stone-200 rounded px-2 py-1.5 text-xs focus:outline-none" onchange="calculateAll()">
+          ${optionsHtml}
+        </select>
+        <div class="flex items-center gap-1 w-28">
+          <input type="number" step="0.01" min="0" placeholder="0.00" class="mat-weight w-full bg-white border border-stone-200 rounded px-2 py-1.5 text-xs text-right focus:outline-none font-mono" oninput="calculateAll()">
+          <span class="text-xs text-stone-500">g</span>
+        </div>
+        <button type="button" onclick="removeRow('${rowId}')" class="text-stone-400 hover:text-red-500 px-1 text-sm font-bold">×</button>
+      `;
+      container.appendChild(row);
+    }
+
+    // 刪除列
+    function removeRow(rowId) {
+      const el = document.getElementById(rowId);
+      if (el) el.remove();
+      calculateAll();
+    }
+
+    // 即時計算加總、基底補足克數與香調百分比
+    function calculateAll() {
+      let totalFragWeight = 0;
+      let topWeight = 0;
+      let midWeight = 0;
+      let baseWeight = 0;
+
+      const rows = document.querySelectorAll('#materials-container > div');
+      rows.forEach(r => {
+        const select = r.querySelector('.mat-select');
+        const weightInput = r.querySelector('.mat-weight');
+        const weight = parseFloat(weightInput.value) || 0;
+
+        if (select.value && weight > 0) {
+          totalFragWeight += weight;
+          const selectedOption = select.options[select.selectedIndex];
+          const note = selectedOption.getAttribute('data-note');
+          if (note === 'Top') topWeight += weight;
+          if (note === 'Mid') midWeight += weight;
+          if (note === 'Base') baseWeight += weight;
+        }
+      });
+
+      // 1. 投入重量與基底更新
+      document.getElementById('total-frag-weight').innerHTML = `${totalFragWeight.toFixed(2)} <span class="text-xs font-normal">g</span>`;
+      const remainBase = targetTotalWeight - totalFragWeight;
+      const baseEl = document.getElementById('remain-base-weight');
+
+      if (remainBase < 0) {
+        baseEl.innerHTML = `<span class="text-red-600 font-bold">超標 ${Math.abs(remainBase).toFixed(2)} g</span>`;
+      } else {
+        baseEl.innerHTML = `${remainBase.toFixed(2)} <span class="text-xs font-normal">g</span>`;
+      }
+
+      // 2. 前中後調比例條即時更新
+      let topPct = 0, midPct = 0, basePct = 0;
+      if (totalFragWeight > 0) {
+        topPct = Math.round((topWeight / totalFragWeight) * 100);
+        midPct = Math.round((midWeight / totalFragWeight) * 100);
+        basePct = 100 - topPct - midPct; // 補齊 100%
+      }
+
+      document.getElementById('bar-top').style.width = topPct + '%';
+      document.getElementById('bar-mid').style.width = midPct + '%';
+      document.getElementById('bar-base').style.width = basePct + '%';
+      document.getElementById('note-summary').innerText = `前 ${topPct}% ｜ 中 ${midPct}% ｜ 後 ${basePct}%`;
+
+      return { totalFragWeight, remainBase, topPct, midPct, basePct };
+    }
+
+    // 完成調配並切換為專屬配方證書
+    function finalizeFormula() {
+      const { totalFragWeight, remainBase, topPct, midPct, basePct } = calculateAll();
+      
+      if (totalFragWeight === 0) {
+        alert("請先至少加入一種香材並填寫磅秤克數！");
+        return;
+      }
+      if (remainBase < 0) {
+        alert("香材投入重量已超出目標規格，請減少克數後再送出！");
+        return;
+      }
+
+      const name = document.getElementById('cust-name').value.trim() || "貴賓";
+      const pName = document.getElementById('perfume-name').value.trim() || "My Signature Scent";
+
+      // 填入證書資訊
+      document.getElementById('cert-creator').innerText = name;
+      document.getElementById('cert-perfume-name').innerText = pName;
+      document.getElementById('cert-volume').innerText = targetVolumeName;
+      
+      const now = new Date();
+      document.getElementById('cert-date').innerText = `${now.getFullYear()}.${now.getMonth()+1}.${now.getDate()}`;
+
+      // 證書比例條
+      document.getElementById('cert-bar-top').style.width = topPct + '%';
+      document.getElementById('cert-bar-mid').style.width = midPct + '%';
+      document.getElementById('cert-bar-base').style.width = basePct + '%';
+      document.getElementById('cert-note-desc').innerHTML = `
+        <span>前調 ${topPct}%</span>
+        <span>中調 ${midPct}%</span>
+        <span>後調 ${basePct}%</span>
+      `;
+
+      // 證書成分列表
+      const listContainer = document.getElementById('cert-materials-list');
+      listContainer.innerHTML = '';
+      
+      const rows = document.querySelectorAll('#materials-container > div');
+      rows.forEach(r => {
+        const select = r.querySelector('.mat-select');
+        const weight = parseFloat(r.querySelector('.mat-weight').value) || 0;
+        if (select.value && weight > 0) {
+          const selectedOption = select.options[select.selectedIndex];
+          const matName = selectedOption.text.split('|')[1].trim();
+          const ratio = Math.round((weight / totalFragWeight) * 100);
+
+          const li = document.createElement('li');
+          li.className = "py-2 flex justify-between items-center text-xs";
+          li.innerHTML = `
+            <span class="text-stone-700 font-medium">${matName}</span>
+            <span class="text-stone-400 font-mono">${weight.toFixed(2)}g (${ratio}%)</span>
+          `;
+          listContainer.appendChild(li);
+        }
+      });
+
+      // 切換畫面
+      document.getElementById('workshop-panel').classList.add('hidden');
+      document.getElementById('result-card').classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // 返回編輯
+    function editFormulaAgain() {
+      document.getElementById('result-card').classList.add('hidden');
+      document.getElementById('workshop-panel').classList.remove('hidden');
+    }
+
+    // 初始化先給 3 列空白欄位
+    window.onload = function() {
+      addMaterialRow();
+      addMaterialRow();
+      addMaterialRow();
+    };
+  </script>
+</body>
+</html>
