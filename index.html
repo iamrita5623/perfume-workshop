@@ -101,10 +101,12 @@
 
         <!-- 自填賦香率 (%) -->
         <div>
-          <label class="block text-xs font-semibold text-stone-600 mb-1.5">2. 目標賦香率 (%)</label>
+          <label class="block text-xs font-semibold text-stone-600 mb-1.5">
+            2. 目標賦香率 (%) <span class="text-red-500">*</span>
+          </label>
           <div class="flex items-center gap-2">
             <div class="relative flex-1">
-              <input type="number" inputmode="decimal" id="cust-conc-rate" value="15" min="1" max="100" step="0.5" class="w-full bg-white border border-stone-200 rounded-lg px-3 py-1.5 text-sm font-mono text-right pr-7 focus:outline-none focus:border-stone-500" oninput="calculateAll()">
+              <input type="number" inputmode="decimal" id="cust-conc-rate" value="15" min="1" max="100" step="0.5" placeholder="填寫 %" class="w-full bg-white border border-stone-200 rounded-lg px-3 py-1.5 text-sm font-mono text-right pr-7 focus:outline-none focus:border-stone-500" oninput="calculateAll()">
               <span class="absolute right-2.5 top-2 text-xs text-stone-400 font-bold">%</span>
             </div>
             <div class="flex gap-1 text-[11px]">
@@ -305,9 +307,14 @@
 
     function onCustomBottleInput() {
       if (!isCustomBottle) return;
-      const val = parseFloat(document.getElementById('cust-bottle-weight').value) || 0;
-      bottleLimitWeight = val;
-      bottleName = val > 0 ? (val + "g") : "自訂克數";
+      const val = parseFloat(document.getElementById('cust-bottle-weight').value);
+      if (val && val > 0) {
+        bottleLimitWeight = val;
+        bottleName = val + "g";
+      } else {
+        bottleLimitWeight = 0;
+        bottleName = "自訂克數";
+      }
       calculateAll();
     }
 
@@ -438,24 +445,46 @@
         }
       });
 
-      const targetConcInput = parseFloat(document.getElementById('cust-conc-rate').value) || 15;
-      const targetConcRate = targetConcInput / 100;
-      const targetFragWeight = bottleLimitWeight * targetConcRate;
+      const concInputRaw = document.getElementById('cust-conc-rate').value.trim();
+      const targetConcInput = parseFloat(concInputRaw);
+      const isConcValid = !isNaN(targetConcInput) && targetConcInput > 0;
 
-      document.getElementById('target-frag-weight').innerHTML = `${targetFragWeight.toFixed(2)} <span class="text-xs font-normal">g</span>`;
-      document.getElementById('total-frag-weight').innerHTML = `${totalFragWeight.toFixed(2)} <span class="text-xs font-normal">g</span>`;
-
-      const remainBase = bottleLimitWeight - totalFragWeight;
+      const targetFragEl = document.getElementById('target-frag-weight');
       const baseEl = document.getElementById('remain-base-weight');
       const alertBox = document.getElementById('status-alert-box');
       const submitBtn = document.getElementById('btn-submit');
 
+      // 已秤入香材重
+      document.getElementById('total-frag-weight').innerHTML = `${totalFragWeight.toFixed(2)} <span class="text-xs font-normal">g</span>`;
+
+      // 檢查瓶器上限是否已填
       if (isCustomBottle && bottleLimitWeight <= 0) {
+        targetFragEl.innerHTML = `<span class="text-stone-400 font-normal">--</span>`;
         baseEl.innerHTML = `<span class="text-amber-600 font-bold">待填瓶重</span>`;
         alertBox.innerHTML = `<span class="text-amber-700">⚠️ 請在上方填寫自行輸入的「瓶器總重上限 (g)」。</span>`;
         submitBtn.disabled = true;
         submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
-      } else if (remainBase < 0) {
+        return { totalFragWeight: 0, remainBase: 0, topPct: 0, midPct: 0, basePct: 0, actualConc: 0 };
+      }
+
+      // 檢查賦香率是否已填
+      if (!isConcValid) {
+        targetFragEl.innerHTML = `<span class="text-amber-600 font-bold">待填%</span>`;
+        baseEl.innerHTML = `<span class="text-stone-400 font-normal">--</span>`;
+        alertBox.innerHTML = `<span class="text-amber-700">⚠️ 請在上方輸入「目標賦香率 (%)」。</span>`;
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        return { totalFragWeight: 0, remainBase: 0, topPct: 0, midPct: 0, basePct: 0, actualConc: 0 };
+      }
+
+      // 正常計算目標香材量與剩餘基底
+      const targetConcRate = targetConcInput / 100;
+      const targetFragWeight = bottleLimitWeight * targetConcRate;
+      targetFragEl.innerHTML = `${targetFragWeight.toFixed(2)} <span class="text-xs font-normal">g</span>`;
+
+      const remainBase = bottleLimitWeight - totalFragWeight;
+
+      if (remainBase < 0) {
         baseEl.innerHTML = `<span class="text-red-600 font-bold">已破瓶容</span>`;
         alertBox.innerHTML = `<span class="text-red-600">🔴 香材投入重 (${totalFragWeight.toFixed(2)}g) 已超出瓶器極限 (${bottleLimitWeight}g)！請倒出過量香材。</span>`;
         submitBtn.disabled = true;
@@ -522,8 +551,16 @@
       }
 
       if (isCustomBottle && bottleLimitWeight <= 0) {
-        alert("請輸入自行設定的瓶器總重上限 (g)！");
+        alert("請填寫自行輸入的【瓶器總重上限 (g)】！");
         document.getElementById('cust-bottle-weight').focus();
+        return;
+      }
+
+      const concInputRaw = document.getElementById('cust-conc-rate').value.trim();
+      const targetConcInput = parseFloat(concInputRaw);
+      if (isNaN(targetConcInput) || targetConcInput <= 0) {
+        alert("請填寫【目標賦香率 (%)】！");
+        document.getElementById('cust-conc-rate').focus();
         return;
       }
 
