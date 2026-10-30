@@ -73,7 +73,7 @@
 
       <!-- 規格與自訂濃度設定 -->
       <div class="grid grid-cols-1 gap-4 mb-6 bg-stone-50 p-4 rounded-xl border border-stone-200">
-        <!-- 瓶器選擇 (10mL, 30mL, 50mL, 自行輸入克數) -->
+        <!-- 瓶器選擇 (10mL, 30mL, 50mL, 自行輸入規格) -->
         <div>
           <label class="block text-xs font-semibold text-stone-600 mb-1.5">1. 選擇瓶器規格 (總重上限)</label>
           <div class="grid grid-cols-3 gap-2 mb-2">
@@ -90,7 +90,7 @@
           <!-- 自行輸入克數 (只能填g) -->
           <div class="flex items-center gap-2">
             <button type="button" onclick="setCustomBottleMode()" id="btn-bottle-custom" class="bottle-btn border border-stone-300 bg-white text-stone-700 text-xs px-3 py-2 rounded-lg font-medium whitespace-nowrap transition">
-              ✏️ 自行輸入規格
+              自行輸入規格
             </button>
             <div id="custom-bottle-wrap" class="hidden flex-1 relative">
               <input type="number" inputmode="decimal" id="cust-bottle-weight" min="1" step="0.1" placeholder="請填寫瓶器總重上限 (g)" class="w-full bg-white border border-stone-300 rounded-lg px-3 py-1.5 text-xs font-mono text-right pr-8 focus:outline-none focus:border-stone-500" oninput="onCustomBottleInput()">
@@ -228,9 +228,9 @@
         </div>
       </div>
 
-      <!-- 香材投入比例清單 (左側自動折行，右側固定寬度不折行) -->
+      <!-- 香材投入比例清單 (精選調配香材) -->
       <div class="text-left mb-6">
-        <div class="text-xs font-semibold text-stone-600 mb-2">精選調配成分</div>
+        <div class="text-xs font-semibold text-stone-600 mb-2">精選調配香材</div>
         <ul id="cert-materials-list" class="divide-y divide-stone-100 text-xs">
         </ul>
       </div>
@@ -338,10 +338,11 @@
           <input type="hidden" class="mat-code" value="">
           <input type="hidden" class="mat-note" value="">
           <input type="hidden" class="mat-name" value="">
+          <input type="hidden" class="mat-zh" value="">
           
-          <!-- 支援輸入代碼、英文、中文名稱即時搜尋 -->
+          <!-- 提示文字改回：輸入代碼(如 64)、英文或中文(如 薰衣草)... -->
           <input type="text" 
-                 placeholder="🔍 輸入中文(如 薰衣草)、英文或代碼..." 
+                 placeholder="🔍 輸入代碼(如 64)、英文或中文(如 薰衣草)..." 
                  class="mat-search-input w-full bg-white border border-stone-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-stone-500 font-mono transition"
                  oninput="filterMaterials(this, '${rowId}')"
                  onfocus="openDropdown('${rowId}')">
@@ -349,7 +350,6 @@
           <div id="dropdown-${rowId}" class="mat-dropdown hidden absolute left-0 right-0 top-full mt-1 max-h-48 overflow-y-auto bg-white border border-stone-300 rounded-lg shadow-lg z-20 text-xs">
           </div>
           
-          <!-- 未點選清單警示標記 (預設隱藏) -->
           <div id="unselected-warn-${rowId}" class="hidden text-[11px] text-amber-700 mt-1 font-medium">
             ⚠️ 尚未從下拉清單選定香材，請點擊搜尋結果完成選取
           </div>
@@ -373,10 +373,10 @@
       const row = document.getElementById(rowId);
       const warnEl = document.getElementById('unselected-warn-' + rowId);
 
-      // 輸入內容改變時，重設該列已選取的 code，避免殘留
       row.querySelector('.mat-code').value = '';
       row.querySelector('.mat-name').value = '';
       row.querySelector('.mat-note').value = '';
+      row.querySelector('.mat-zh').value = '';
       input.classList.remove('border-emerald-500', 'bg-emerald-50/20');
       calculateAll();
 
@@ -389,11 +389,9 @@
         return;
       }
 
-      // 只要輸入了字，但在點擊選單前，顯示警示
       if (warnEl) warnEl.classList.remove('hidden');
       input.classList.add('border-amber-400');
 
-      // 搜尋代碼、英文、或中文
       const matched = MATERIALS_DB.filter(item => 
         item.code.toLowerCase().includes(keyword) || 
         item.name.toLowerCase().includes(keyword) ||
@@ -411,7 +409,7 @@
               <span class="font-medium text-stone-700">${item.code} | ${item.name}</span>
               <span class="text-stone-400 text-[11px] block sm:inline sm:ml-1">(${item.zh})</span>
             </div>
-            <span class="text-[10px] px-1.5 py-0.5 rounded bg-stone-200 text-stone-600 font-eng whitespace-nowrap ml-2">${item.note}</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-stone-200 text-stone-600 font-eng whitespace-nowrap ml-2">${item.note.toUpperCase()}</span>
           `;
           div.onclick = function() {
             selectMaterial(rowId, item);
@@ -430,7 +428,6 @@
       }
     }
 
-    // 客人點選了下拉選單項目：精準鎖定當前 rowId！
     function selectMaterial(rowId, item) {
       const row = document.getElementById(rowId);
       if (!row) return;
@@ -438,12 +435,11 @@
       row.querySelector('.mat-code').value = item.code;
       row.querySelector('.mat-name').value = item.name;
       row.querySelector('.mat-note').value = item.note;
+      row.querySelector('.mat-zh').value = item.zh || '';
       
       const input = row.querySelector('.mat-search-input');
-      // 選定後，自動鎖定為標準純英文俐落格式
       input.value = `${item.code} | ${item.name} [${item.note}]`;
       
-      // 樣式轉為選定成功的綠色邊框
       input.classList.remove('border-amber-400');
       input.classList.add('border-emerald-500', 'bg-emerald-50/20');
 
@@ -602,7 +598,6 @@
         return;
       }
 
-      // 嚴格檢查：是否有「手打了文字卻沒有從清單點擊選取香材」或「選了香材但沒填重量」
       const rows = document.querySelectorAll('#materials-container > div');
       
       for (let i = 0; i < rows.length; i++) {
@@ -613,14 +608,12 @@
         const weightInput = r.querySelector('.mat-weight');
         const weight = parseFloat(weightInput.value) || 0;
 
-        // 1. 有打字但沒有點擊清單 (未選定)
         if (textVal !== '' && !codeVal) {
           alert(`⚠️ 第 ${i + 1} 列【${textVal}】尚未從清單選取有效香材！\n請點擊輸入框下方的搜尋結果完成選取，或清空該列。`);
           searchInput.focus();
           return;
         }
 
-        // 2. 有選香材但重量未填
         if (codeVal && weight <= 0) {
           const nameVal = r.querySelector('.mat-name').value;
           alert(`⚠️ 第 ${i + 1} 列已挑選香材【${codeVal} ${nameVal}】，但尚未填寫秤入重量！\n請填寫克數或點擊右側「刪除」該列。`);
@@ -663,6 +656,7 @@
       rows.forEach(r => {
         const code = r.querySelector('.mat-code').value;
         const nameVal = r.querySelector('.mat-name').value;
+        const zhVal = r.querySelector('.mat-zh').value;
         const note = r.querySelector('.mat-note').value;
         const weight = parseFloat(r.querySelector('.mat-weight').value) || 0;
 
@@ -673,12 +667,19 @@
           if (note === 'Mid') midNames.push(nameVal);
           if (note === 'Base') baseNames.push(nameVal);
 
-          // 採用 Flex 排版：左側香材名稱自動折行，右側固定寬度不折行
+          // 呈現格式與搜尋結果完全一致：
+          // 第一行：F-Code | 英文名稱  [香調標籤]
+          // 第二行：(中文名稱)
+          // 右側：重量與佔比
           const li = document.createElement('li');
           li.className = "py-2.5 flex items-start justify-between gap-3 border-b border-stone-100 last:border-b-0";
           li.innerHTML = `
-            <div class="flex-1 pr-2 break-words text-stone-700 font-medium leading-snug">
-              ${code} | ${nameVal} <span class="text-stone-400 font-normal">[${note}]</span>
+            <div class="flex-1 pr-2 break-words leading-tight">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-stone-800 font-medium">${code} | ${nameVal}</span>
+                <span class="text-[9px] px-1 py-0.2 rounded bg-stone-100 text-stone-500 font-eng uppercase tracking-wider">${note.toUpperCase()}</span>
+              </div>
+              ${zhVal ? `<div class="text-stone-400 text-[11px] mt-0.5">(${zhVal})</div>` : ''}
             </div>
             <div class="w-28 text-right font-mono flex-shrink-0 whitespace-nowrap text-stone-500 text-xs pt-0.5">
               ${weight.toFixed(2)}g <span class="text-stone-400">(${ratio}%)</span>
