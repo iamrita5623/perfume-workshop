@@ -179,20 +179,22 @@
     let targetVolumeName = "30mL";
 
     // 容量切換
-    function setVolume(weight, name) {
-      targetTotalWeight = weight;
-      targetVolumeName = name;
-      document.querySelectorAll('.vol-btn').forEach(btn => {
-        btn.classList.remove('bg-stone-800', 'text-white');
-        btn.classList.add('bg-white', 'text-stone-700');
-      });
-      if(name === '30mL') {
-        document.getElementById('btn-30').classList.add('bg-stone-800', 'text-white');
-      } else {
-        document.getElementById('btn-50').classList.add('bg-stone-800', 'text-white');
-      }
-      calculateAll();
-    }
+function setVolume(weight, name) {
+  targetTotalWeight = weight;
+  targetVolumeName = name;
+  document.querySelectorAll('.vol-btn').forEach(btn => {
+    btn.classList.remove('bg-stone-800', 'text-white');
+    btn.classList.add('bg-white', 'text-stone-700');
+  });
+  if(name === '30mL') {
+    document.getElementById('btn-30').classList.add('bg-stone-800', 'text-white');
+    document.getElementById('btn-30').classList.remove('border-stone-200');
+  } else {
+    document.getElementById('btn-50').classList.add('bg-stone-800', 'text-white');
+    document.getElementById('btn-50').classList.remove('border-stone-200');
+  }
+  calculateAll(); // 立即重新計算基底克數
+}
 
     // 動態新增一列香材輸入
     function addMaterialRow() {
@@ -356,3 +358,4 @@
   </script>
 </body>
 </html>
+
