@@ -261,6 +261,7 @@
     let isCustomBottle = false;
     let bottleLimitWeight = 25.5; // 預設 30mL = 25.5g
     let bottleName = "30mL";
+    let rowCounter = 0; // 絕對唯一的列計數器，徹底防止任何列 ID 衝突！
 
     function setBottle(weight, name) {
       isCustomBottle = false;
@@ -323,9 +324,11 @@
       calculateAll();
     }
 
+    // 動態新增香材列：使用遞增 rowCounter，確保每列 ID 絕對唯一！
     function addMaterialRow() {
+      rowCounter++;
+      const rowId = 'mat-row-' + rowCounter;
       const container = document.getElementById('materials-container');
-      const rowId = 'mat-' + Date.now();
 
       const row = document.createElement('div');
       row.id = rowId;
@@ -364,14 +367,13 @@
       container.appendChild(row);
     }
 
-    // 同步支援【代碼、英文名稱、中文名稱】即時搜尋過濾
     function filterMaterials(input, rowId) {
       const keyword = input.value.trim().toLowerCase();
       const dropdown = document.getElementById('dropdown-' + rowId);
       const row = document.getElementById(rowId);
       const warnEl = document.getElementById('unselected-warn-' + rowId);
 
-      // 輸入內容改變時，重設已選取的 code，避免殘留上次選取的香材
+      // 輸入內容改變時，重設該列已選取的 code，避免殘留
       row.querySelector('.mat-code').value = '';
       row.querySelector('.mat-name').value = '';
       row.querySelector('.mat-note').value = '';
@@ -421,15 +423,18 @@
     }
 
     function openDropdown(rowId) {
-      const input = document.querySelector('#' + rowId + ' .mat-search-input');
-      if (input.value.trim() && !document.querySelector('#' + rowId + ' .mat-code').value) {
+      const row = document.getElementById(rowId);
+      const input = row.querySelector('.mat-search-input');
+      if (input.value.trim() && !row.querySelector('.mat-code').value) {
         filterMaterials(input, rowId);
       }
     }
 
-    // 客人點選了下拉選單項目
+    // 客人點選了下拉選單項目：精準鎖定當前 rowId！
     function selectMaterial(rowId, item) {
       const row = document.getElementById(rowId);
+      if (!row) return;
+
       row.querySelector('.mat-code').value = item.code;
       row.querySelector('.mat-name').value = item.name;
       row.querySelector('.mat-note').value = item.note;
