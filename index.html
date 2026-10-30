@@ -336,14 +336,19 @@
           <input type="hidden" class="mat-note" value="">
           <input type="hidden" class="mat-name" value="">
           
+          <!-- 支援輸入代碼、英文、中文名稱即時搜尋 -->
           <input type="text" 
-                 placeholder="🔍 輸入代碼(如 64)、英文或中文(如 薰衣草)..." 
-                 class="mat-search-input w-full bg-white border border-stone-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-stone-500 font-mono"
+                 placeholder="🔍 輸入中文(如 薰衣草)、英文或代碼..." 
+                 class="mat-search-input w-full bg-white border border-stone-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-stone-500 font-mono transition"
                  oninput="filterMaterials(this, '${rowId}')"
-                 onfocus="openDropdown('${rowId}')"
-                 onblur="validateInputSelection('${rowId}')">
+                 onfocus="openDropdown('${rowId}')">
           
           <div id="dropdown-${rowId}" class="mat-dropdown hidden absolute left-0 right-0 top-full mt-1 max-h-48 overflow-y-auto bg-white border border-stone-300 rounded-lg shadow-lg z-20 text-xs">
+          </div>
+          
+          <!-- 未點選清單警示標記 (預設隱藏) -->
+          <div id="unselected-warn-${rowId}" class="hidden text-[11px] text-amber-700 mt-1 font-medium">
+            ⚠️ 尚未從下拉清單選定香材，請點擊搜尋結果完成選取
           </div>
         </div>
 
@@ -359,63 +364,70 @@
       container.appendChild(row);
     }
 
-    // 搜尋與篩選：同時支援代碼 (F-0053)、英文 (Lavender) 與中文 (薰衣草) 搜尋！
+    // 同步支援【代碼、英文名稱、中文名稱】即時搜尋過濾
     function filterMaterials(input, rowId) {
+      const keyword = input.value.trim().toLowerCase();
+      const dropdown = document.getElementById('dropdown-' + rowId);
       const row = document.getElementById(rowId);
-      // 一旦使用者手動改動輸入內容，清空之前鎖定的代碼（必須重新點選）
+      const warnEl = document.getElementById('unselected-warn-' + rowId);
+
+      // 輸入內容改變時，重設已選取的 code，避免殘留上次選取的香材
       row.querySelector('.mat-code').value = '';
       row.querySelector('.mat-name').value = '';
       row.querySelector('.mat-note').value = '';
+      input.classList.remove('border-emerald-500', 'bg-emerald-50/20');
+      calculateAll();
 
-      const keyword = input.value.trim().toLowerCase();
-      const dropdown = document.getElementById('dropdown-' + rowId);
       dropdown.innerHTML = '';
 
       if (!keyword) {
         dropdown.classList.add('hidden');
-        calculateAll();
+        if (warnEl) warnEl.classList.add('hidden');
+        input.classList.remove('border-amber-400');
         return;
       }
 
-      // 比對代碼、英文名稱、或中文名稱
+      // 只要輸入了字，但在點擊選單前，顯示警示
+      if (warnEl) warnEl.classList.remove('hidden');
+      input.classList.add('border-amber-400');
+
+      // 搜尋代碼、英文、或中文
       const matched = MATERIALS_DB.filter(item => 
         item.code.toLowerCase().includes(keyword) || 
         item.name.toLowerCase().includes(keyword) ||
         (item.zh && item.zh.includes(keyword))
-      ).slice(0, 20);
+      ).slice(0, 25);
 
       if (matched.length === 0) {
-        dropdown.innerHTML = '<div class="p-2 text-stone-400 text-center">找不到相符香材 (請試代碼或英中文)</div>';
+        dropdown.innerHTML = '<div class="p-2 text-stone-400 text-center">找不到相符香材 (支援中英文與代碼)</div>';
       } else {
         matched.forEach(item => {
           const div = document.createElement('div');
           div.className = "px-3 py-2 hover:bg-stone-100 cursor-pointer border-b border-stone-100 last:border-b-0 flex justify-between items-center";
-          // 下拉選單中顯示中文名稱輔助辨識，點選後鎖定英文
           div.innerHTML = `
             <div>
-              <span class="font-medium text-stone-800">${item.code} | ${item.name}</span>
-              <span class="text-stone-400 text-[11px] block sm:inline sm:ml-1 font-sans">(${item.zh})</span>
+              <span class="font-medium text-stone-700">${item.code} | ${item.name}</span>
+              <span class="text-stone-400 text-[11px] block sm:inline sm:ml-1">(${item.zh})</span>
             </div>
             <span class="text-[10px] px-1.5 py-0.5 rounded bg-stone-200 text-stone-600 font-eng whitespace-nowrap ml-2">${item.note}</span>
           `;
-          div.onmousedown = function(e) {
-            e.preventDefault(); // 防止觸發 onblur 導致點擊無效
+          div.onclick = function() {
             selectMaterial(rowId, item);
           };
           dropdown.appendChild(div);
         });
       }
       dropdown.classList.remove('hidden');
-      calculateAll();
     }
 
     function openDropdown(rowId) {
       const input = document.querySelector('#' + rowId + ' .mat-search-input');
-      if (input.value.trim()) {
+      if (input.value.trim() && !document.querySelector('#' + rowId + ' .mat-code').value) {
         filterMaterials(input, rowId);
       }
     }
 
+    // 客人點選了下拉選單項目
     function selectMaterial(rowId, item) {
       const row = document.getElementById(rowId);
       row.querySelector('.mat-code').value = item.code;
@@ -423,31 +435,18 @@
       row.querySelector('.mat-note').value = item.note;
       
       const input = row.querySelector('.mat-search-input');
-      // 點選後填入乾淨標準英文格式
+      // 選定後，自動鎖定為標準純英文俐落格式
       input.value = `${item.code} | ${item.name} [${item.note}]`;
-      input.classList.remove('border-red-400', 'bg-red-50');
+      
+      // 樣式轉為選定成功的綠色邊框
+      input.classList.remove('border-amber-400');
+      input.classList.add('border-emerald-500', 'bg-emerald-50/20');
+
+      const warnEl = document.getElementById('unselected-warn-' + rowId);
+      if (warnEl) warnEl.classList.add('hidden');
       
       document.getElementById('dropdown-' + rowId).classList.add('hidden');
       calculateAll();
-    }
-
-    // 失焦檢查：如果輸入框有字但沒有成功點選鎖定香材代碼，標紅警示
-    function validateInputSelection(rowId) {
-      const row = document.getElementById(rowId);
-      if (!row) return;
-      const code = row.querySelector('.mat-code').value;
-      const input = row.querySelector('.mat-search-input');
-      const val = input.value.trim();
-
-      setTimeout(() => {
-        document.getElementById('dropdown-' + rowId).classList.add('hidden');
-      }, 200);
-
-      if (val !== '' && !code) {
-        input.classList.add('border-red-400', 'bg-red-50');
-      } else {
-        input.classList.remove('border-red-400', 'bg-red-50');
-      }
     }
 
     document.addEventListener('click', function(e) {
@@ -598,37 +597,29 @@
         return;
       }
 
-      // 嚴格檢查香材列：
-      // 1. 是否有輸入文字但「未點選下拉選項」造成代碼為空？
-      // 2. 是否有選了代碼但未填寫重量？
-      // 3. 是否有填寫重量但香材是空的？
+      // 嚴格檢查：是否有「手打了文字卻沒有從清單點擊選取香材」或「選了香材但沒填重量」
       const rows = document.querySelectorAll('#materials-container > div');
+      
       for (let i = 0; i < rows.length; i++) {
         const r = rows[i];
-        const code = r.querySelector('.mat-code').value;
-        const nameVal = r.querySelector('.mat-name').value;
-        const inputVal = r.querySelector('.mat-search-input').value.trim();
+        const searchInput = r.querySelector('.mat-search-input');
+        const textVal = searchInput.value.trim();
+        const codeVal = r.querySelector('.mat-code').value;
         const weightInput = r.querySelector('.mat-weight');
         const weight = parseFloat(weightInput.value) || 0;
 
-        // 情況 A：輸入了搜尋字（例如打了「薰衣草」），但沒有從下拉選單點選
-        if (inputVal !== '' && !code) {
-          alert("⚠️ 您輸入了「" + inputVal + "」，但尚未從清單中點選確認！\n請點擊搜尋框並點選相符的香材選項。");
-          r.querySelector('.mat-search-input').focus();
+        // 1. 有打字但沒有點擊清單 (未選定)
+        if (textVal !== '' && !codeVal) {
+          alert(`⚠️ 第 ${i + 1} 列【${textVal}】尚未從清單選取有效香材！\n請點擊輸入框下方的搜尋結果完成選取，或清空該列。`);
+          searchInput.focus();
           return;
         }
 
-        // 情況 B：選取了香材，但未填重量
-        if (code && weight <= 0) {
-          alert("⚠️ 您已挑選香材【" + code + " " + nameVal + "】，但尚未填寫秤入重量！\n請填寫克數或點擊右側「刪除」該列。");
+        // 2. 有選香材但重量未填
+        if (codeVal && weight <= 0) {
+          const nameVal = r.querySelector('.mat-name').value;
+          alert(`⚠️ 第 ${i + 1} 列已挑選香材【${codeVal} ${nameVal}】，但尚未填寫秤入重量！\n請填寫克數或點擊右側「刪除」該列。`);
           weightInput.focus();
-          return;
-        }
-
-        // 情況 C：沒選香材卻填了重量
-        if (!code && weight > 0) {
-          alert("⚠️ 您填寫了秤入重量 (" + weight + "g)，但尚未挑選香材！\n請選取香材或刪除該列。");
-          r.querySelector('.mat-search-input').focus();
           return;
         }
       }
@@ -652,6 +643,7 @@
       const now = new Date();
       document.getElementById('cert-date').innerText = `${now.getFullYear()}.${now.getMonth()+1}.${now.getDate()}`;
 
+      // 填充向量金字塔百分比
       document.getElementById('svg-top-pct').textContent = topPct + "%";
       document.getElementById('svg-mid-pct').textContent = midPct + "%";
       document.getElementById('svg-base-pct').textContent = basePct + "%";
@@ -676,6 +668,7 @@
           if (note === 'Mid') midNames.push(nameVal);
           if (note === 'Base') baseNames.push(nameVal);
 
+          // 採用 Flex 排版：左側香材名稱自動折行，右側固定寬度不折行
           const li = document.createElement('li');
           li.className = "py-2.5 flex items-start justify-between gap-3 border-b border-stone-100 last:border-b-0";
           li.innerHTML = `
