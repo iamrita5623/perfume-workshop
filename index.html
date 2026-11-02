@@ -737,7 +737,7 @@
     }
 
 // 階段 2：改用隱藏 Form 表單提交，完美繞過 Google 302 轉址與 CORS 限制
-    function saveToGoogleSheet() {
+function saveToGoogleSheet() {
       if (hasSavedCurrent) {
         alert("此版本配方已成功存入試算表，無需重複送出！");
         return;
@@ -753,43 +753,39 @@
       btnText.innerText = '正在存入 Google 試算表...';
       saveBtn.disabled = true;
 
-      // 動態建立一個隱藏的 iframe 與 form
-      let iframeName = 'hidden_iframe_' + Date.now();
-      let iframe = document.createElement('iframe');
-      iframe.name = iframeName;
-      iframe.style.display = 'none';
-      document.body.appendChild(iframe);
+      // 將物件轉為網址參數 (URLSearchParams)
+      let queryParams = new URLSearchParams({
+        customerName: currentPreparedData.customerName,
+        phone: currentPreparedData.phone,
+        perfumeName: currentPreparedData.perfumeName,
+        volume: currentPreparedData.volume,
+        totalFragWeight: currentPreparedData.totalFragWeight,
+        remainBase: currentPreparedData.remainBase,
+        topPct: currentPreparedData.topPct,
+        midPct: currentPreparedData.midPct,
+        basePct: currentPreparedData.basePct,
+        materials: JSON.stringify(currentPreparedData.materials)
+      });
 
-      let form = document.createElement('form');
-      form.method = 'POST';
-      form.action = GOOGLE_SCRIPT_URL;
-      form.target = iframeName;
-
-      // 將資料以字串化 JSON 放入表單欄位中
-      let input = document.createElement('input');
-      input.type = 'hidden';
-      input.name = 'data';
-      input.value = JSON.stringify(currentPreparedData);
-      form.appendChild(input);
-
-      document.body.appendChild(form);
-      form.submit();
-
-      // 畫面回饋成功
-      setTimeout(() => {
+      // 使用 GET 請求，徹底避開 302 POST 轉址清空 Body 的問題
+      fetch(GOOGLE_SCRIPT_URL + "?" + queryParams.toString(), {
+        method: 'GET',
+        mode: 'no-cors'
+      })
+      .then(() => {
         hasSavedCurrent = true;
         spinner.classList.add('hidden');
         btnText.innerText = '🎉 已成功存入後台試算表！';
         saveBtn.classList.remove('bg-emerald-700', 'hover:bg-emerald-800');
         saveBtn.classList.add('bg-stone-400', 'cursor-default');
         statusMsg.innerHTML = '<span class="text-emerald-700 font-semibold">✨ 紀錄已成功寫入 Google 試算表！</span>';
-        
-        // 清理暫存表單
-        setTimeout(() => {
-          form.remove();
-          iframe.remove();
-        }, 1000);
-      }, 1000);
+      })
+      .catch((err) => {
+        spinner.classList.add('hidden');
+        btnText.innerText = '❌ 存檔失敗，請再試一次';
+        saveBtn.disabled = false;
+        alert("存檔發生錯誤：" + err);
+      });
     }
     function editFormulaAgain() {
       document.getElementById('result-card').classList.add('hidden');
